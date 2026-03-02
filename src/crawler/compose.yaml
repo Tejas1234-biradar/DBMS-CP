@@ -1,0 +1,14 @@
+services:
+  crawler-service:
+    build: .
+    env_file: "variables.env"
+    depends_on: 
+    - redis
+    deploy:
+      replicas: 1
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - 6379:6379

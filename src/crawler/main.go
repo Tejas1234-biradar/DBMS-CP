@@ -20,7 +20,7 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 func main() {
-	maxConcurrency := flag.Int("max-concurrency", 10, "Maximum number of concurrent workers")
+	maxConcurrency := flag.Int("max-concurrency", 1, "Maximum number of concurrent workers")
 	maxPages := flag.Int("max-pages", 100, "Maximum number of pages per batch")
 	flag.Parse()
 	//environment Variables

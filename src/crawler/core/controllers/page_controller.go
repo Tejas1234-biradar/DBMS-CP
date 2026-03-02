@@ -59,21 +59,35 @@ func (pgc *PageController) GetAllPages() map[string]*pages.Page {
 }
 func (pgc *PageController) SavePages(c *crawler.CrawlerConfig) {
 	data := c.Pages
-	log.Printf("writing %d entries to the db ....\n", len(data))
+	log.Printf("writing %d entries to the db....\n", len(data))
+
 	pipeline := pgc.db.Client.Pipeline()
 	for _, page := range data {
 		pageHash, err := pages.HashPage(page)
 		if err != nil {
-			log.Printf("Error hashing page %s:%v", page.NormalizedURL, err)
+			log.Printf("Error hashing page %s: %v", page.NormalizedURL, err)
 			continue
 		}
-		pipeline.HSet(pgc.db.Context, utils.IndexerQueueKey, utils.PagePrefix+":"+page.NormalizedURL, pageHash)
-		pgc.db.Client.LPush(pgc.db.Context, utils.IndexerQueueKey, utils.PagePrefix+":"+page.NormalizedURL).Result()
+
+		pageKey := utils.PagePrefix + ":" + page.NormalizedURL
+
+		// Write the page data to its OWN key
+		pipeline.HSet(pgc.db.Context, pageKey, pageHash)
+
+		// Push that key onto the indexer queue list
+		pipeline.LPush(pgc.db.Context, utils.IndexerQueueKey, pageKey)
 	}
-	_, err := pipeline.Exec(pgc.db.Context)
+
+	results, err := pipeline.Exec(pgc.db.Context)
 	if err != nil {
 		log.Printf("error executing pipeline: %v", err)
 	} else {
-		log.Print("sucessfully writted %d entries to the indexer DB", len(data))
+		log.Printf("successfully wrote %d entries, %d pipeline results", len(data), len(results))
+		// Log any individual command errors
+		for i, result := range results {
+			if result.Err() != nil {
+				log.Printf("  pipeline cmd %d failed: %v", i, result.Err())
+			}
+		}
 	}
 }
