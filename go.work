@@ -1,0 +1,7 @@
+go 1.25.7
+
+use (
+	./src/crawler
+	./src/indexer
+	./src/tfi-idf
+)
